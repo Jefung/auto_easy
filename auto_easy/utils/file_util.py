@@ -14,7 +14,10 @@ def is_image(file_path):
 
 def get_app_dir():
     app_data_roaming = os.getenv('APPDATA')
-    return os.path.join(app_data_roaming, 'auto_easy')
+    app_dir = os.path.join(app_data_roaming, 'auto_easy')
+    if not os.path.exists(app_dir):
+        os.makedirs(app_dir)
+    return app_dir
 
 
 def get_files(dir_path, file_prefix='', file_ext=''):
@@ -48,6 +51,7 @@ def download_file(url, save_path) -> str:
     :param save_path: 文件保存的路径
     :return: 如果下载成功返回 True，否则返回 False
     """
+    print('downloading {} -> {}'.format(url,save_path))
     try:
         # 发送 HTTP 请求，设置 stream=True 以支持流式下载
         response = requests.get(url, stream=True)

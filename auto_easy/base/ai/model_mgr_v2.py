@@ -9,20 +9,25 @@ from auto_easy.utils import async_thread, cvt_chinese, logger, is_actual_subclas
 
 
 class AIModelBase:
-    def __init__(self, name, rpc_support=True):
+    def __init__(self, name, rpc_support=True, preload=True):
         self.name = name
         self.inited = False
         self.rpc_support = rpc_support
-        async_thread(self._async_init)
         self.model_mgr: ModelMgrV2 = None
+        self.start_init = False
+        if preload:
+            async_thread(self._async_init)
 
     def _async_init(self):
         # 在这里实现异步初始化的通用逻辑
+        self.start_init = True
         self.init_model()
         self.inited = True
         logger.debug("init model: {}".format(self.name))
 
     def wait_model_init(self):
+        if not self.start_init:
+            async_thread(self._async_init)
         while not self.inited:
             time.sleep(0.1)
 

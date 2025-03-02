@@ -1,3 +1,5 @@
+import time
+
 import cv2
 import numpy as np
 
@@ -10,13 +12,14 @@ class SuperRes(AIModelBase):
     def __init__(self, *args, **kwargs):
         self.arg = args
         self.kwargs = kwargs
-        self.scale_conf = {
-            3: must_get_file('EDSR_x3.pb'),
-        }
+
         self.scale_model_map = {}
-        super().__init__(name='SuperRes')
+        super().__init__(name='SuperRes',preload=False)
 
     def init_model(self):
+        self.scale_conf = {
+            3: must_get_file('EDSR_x3.pb',download_url='https://github.com/Jefung/auto_easy/raw/refs/heads/main/statics/EDSR_x3.pb'),
+        }
         for scale_factor, model_path in self.scale_conf.items():
             sr = cv2.dnn_superres.DnnSuperResImpl_create()
             # 读取预训练的模型
@@ -64,7 +67,9 @@ class SuperRes(AIModelBase):
 
 # ocr = AIOCR()
 if __name__ == '__main__':
+    start = time.time()
     supper_res = SuperRes()
+    print(time.time()-start)
     # ans = supper_res.mock_rpc_call(get_test_pic('skill_name.bmp'), scale_factor=4)
     # print(type(ans))
     # ans = ans.astype(np.uint8)

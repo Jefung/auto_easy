@@ -11,7 +11,8 @@ from auto_easy.utils import must_get_file, cache_with_custom_time
 
 @cache_with_custom_time
 def _get_cn_font(font_size):
-    font_path = must_get_file('NotoSansSC-VariableFont_wght.ttf')
+    font_path = must_get_file('NotoSansSC-VariableFont_wght.ttf',
+                              download_url='https://github.com/Jefung/auto_easy/raw/refs/heads/main/statics/NotoSansSC-VariableFont_wght.ttf')
     return ImageFont.truetype(font_path, font_size)
 
 
