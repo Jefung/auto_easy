@@ -12,8 +12,7 @@ class DAG(Executor):
         self.retry_mode = retry_mode  # None-不重试, 1-回退重试
         super().__init__(name)
 
-    # @abstractmethod
-    def init(self):
+    def init(self, ctx: Ctx=None):
         pass
 
     def hit(self, ctx: Ctx) -> bool:
@@ -30,7 +29,6 @@ class DAG(Executor):
         retry = 0
         while idx < len(self.layers):
             layer = self.layers[idx]
-            logger.debug(layer.name)
             succ = False
             if layer.hit(ctx=ctx):
                 if layer.run(ctx=ctx):

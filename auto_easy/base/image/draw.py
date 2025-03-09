@@ -9,7 +9,7 @@ from auto_easy.models import Box
 from auto_easy.utils import must_get_file, cache_with_custom_time
 
 
-@cache_with_custom_time
+@cache_with_custom_time()
 def _get_cn_font(font_size):
     font_path = must_get_file('NotoSansSC-VariableFont_wght.ttf',
                               download_url='https://github.com/Jefung/auto_easy/raw/refs/heads/main/statics/NotoSansSC-VariableFont_wght.ttf')
@@ -30,6 +30,7 @@ def draw_rectangles(img, boxes: list[Box] = None, title='', use_name=True, show=
     draw = ImageDraw.Draw(image)
 
     font = _get_cn_font(front_size)  # 可能需要调整字体大小
+    print(font)
 
     # 绘制每一个矩形
     boxes = boxes if boxes is not None else []
@@ -158,4 +159,4 @@ def show_multi_image(images):
 
 
 if __name__ == '__main__':
-    draw_rectangles(get_test_pic('skill_box.bmp'), [Box(100, 100, 150, 150, name='test 中文')], show=True)
+    draw_rectangles(get_test_pic('core/win_model_case_1.jpg'), [Box(100, 100, 150, 150, name='test 中文')], show=True)

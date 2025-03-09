@@ -92,7 +92,6 @@ class ModelMgrV2:
         self._models = models
         self.rpc_client = None
         self.rpc_server_port = rpc_server_port
-        # async_thread(self._init_rpc_client)
         self._init_rpc_client()
         for model in self._models:
             model.set_model_mgr(self)
@@ -145,9 +144,8 @@ class ModelMgrV2:
             server = xmlrpc.client.ServerProxy('http://127.0.0.1:{}/'.format(self.rpc_server_port))
             if server.ping() == 'pong':
                 self.rpc_client = server
-
         except Exception as e:
-            raise e
+            pass
 
     def _rpc_call(self, name, *args, **kwargs):
         model = self.get_model(name)

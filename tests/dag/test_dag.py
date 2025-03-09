@@ -30,6 +30,7 @@ class TestDAG(TestCase):
                 super().__init__('测试Sub功能')
 
             def init(self):
+                print('TestSubDag init')
                 self.add_layer(TestDag())
                 self.add_layer(DAGLayerSimple(ExecutorDebug('after_sub_dag',hit_ret=True)))
 

@@ -85,7 +85,7 @@ class AIYoloV5(AIYolo):
         conf = self.conf
         # # 禁用所有级别的日志记录
         # logger.disabled = True
-        model = torch.hub.load('ultralytics/yolov5', 'custom', verbose=False, path=conf.pt_path)
+        model = torch.hub.load('ultralytics/yolov5', 'custom', verbose=True, path=conf.pt_path)
 
         # 将模型设置为eval模式，关闭一些训练相关的模块（如Dropout等），提升性能
         model.eval()

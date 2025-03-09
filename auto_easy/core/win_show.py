@@ -12,9 +12,9 @@ class WinShow(Window):
         Window.__init__(self, window_id=window_id)
         self.pic_save_dir = pic_save_dir
 
-    def show(self, boxes: list[Box] = None):
+    def show(self, boxes: list[Box] = None, title=''):
         img = self.capture_window()
-        draw_img = draw_rectangles(img, boxes, use_name=True)
+        draw_img = draw_rectangles(img, boxes, use_name=True,title=title)
         draw_img.show()
 
     def save(self, prefix, img=None, time_suffix=True, ext='bmp', debug_print=True):

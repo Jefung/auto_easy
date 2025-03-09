@@ -43,6 +43,13 @@ class Point:
     def is_nearby(self, p, x_radius=30, y_radius=30):
         return abs(self.x - p.x) <= x_radius and abs(self.y - p.y) <= y_radius
 
+    def is_nearby_with_points(self, points, x_radius=30, y_radius=30):
+        for p in points:
+            if self.is_nearby(p, x_radius, y_radius):
+                return True
+        return False
+
+
     def get_distance(self, p):
         dx = self.x - p.x
         dy = self.y - p.y

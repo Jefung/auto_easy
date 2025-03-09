@@ -128,14 +128,14 @@ class Window:
             raise Exception(f'xy(<{x},{y}>) is invalid')
 
     def left_click(self, x, y, press_sec=0.05, af_sleep=0, bf_sleep=0):
-        time.sleep(af_sleep)
+        time.sleep(bf_sleep)
 
         self.check_coor(x, y)
         self.left_down(x, y)
         time.sleep(press_sec)
         self.left_up(x, y)
 
-        time.sleep(bf_sleep)
+        time.sleep(af_sleep)
 
     def left_click_in_box(self, box: Box, af_sleep=0, bf_sleep=0, scale=0.75):
         # 为了避免点击到边缘,这里先将区域缩小到scale比例

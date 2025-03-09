@@ -154,6 +154,22 @@ class ExecutorPicDet(Executor):
         sleep_with_rand(self.af_sleep)
         return True
 
+class ExecutorPicDetNotExists(Executor):
+    def __init__(self, pic_name, det_to=3):
+        super().__init__(name='图片检测({})'.format(pic_name))
+        self.pic_name = pic_name
+        self.det_to = det_to
+
+
+    def hit(self, ctx: Ctx) -> bool:
+        return True
+
+    def exec(self, ctx: Ctx) -> bool:
+        mdet = get_auto_core().loop_find_pics_not_exists(self.pic_name, to=self.det_to)
+
+        if mdet.is_detected:
+            return False
+        return True
 
 class ExecutorPicDisappear(Executor):
     def __init__(self, pic_name, det_to=0, wait_to=5):
@@ -191,9 +207,12 @@ class ExecutorPicTFSwitch(Executor):
 
     def hit(self, ctx: Ctx) -> bool:
         # 至少检测一张图片
+        logger.debug('开始检测两张图片：{}'.format(self.pics_name))
+        get_auto_core().save('检测图片')
         det = get_auto_core().loop_find_pics(self.pics_name, to=self.det_to, min_det_num=1)
+        logger.debug('检测结果：{}'.format(det))
         if not det.is_detected:
-            logger.debug('同时不存在两张图片')
+            logger.debug('同时不存在两张图片：{}'.format(self.pics_name))
             return False
         if det.check(includes=self.pics_name):
             return False

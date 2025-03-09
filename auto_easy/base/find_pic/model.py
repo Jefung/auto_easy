@@ -14,14 +14,14 @@ from auto_easy.constant import get_test_pic
 from auto_easy.models import Box, sort_boxes_by_group, group_box
 
 PicDetConf_box = None
-PicDetConf_expand_scale = 2  # 匹配区域box缩放比例, 1表示不缩放, 2表示放大两倍
+PicDetConf_expand_scale = 3  # 匹配区域box缩放比例, 1表示不缩放, 2表示放大两倍
 PicDetConf_multi_match = False  # 是否允许一张图片匹配多个
 PicDetConf_multi_dedup = True  # 匹配多个的时候进行去重, 保留sim最高
 PicDetConf_find_one = False  # 只返回一个
 PicDetConf_color = ""  # 该参数如果设置了非空，会覆盖图片名称中的偏色
 PicDetConf_contain_color = ""  # 该参数如果设置了非空，会覆盖图片名称中的偏色
 PicDetConf_sim = 0.8
-PicDetConf_range_scale = (0.98, 1.02, 0.01)  # 自动大小匹配, 左闭右闭区间, 格式 (start, end, step) , 例如(0.95, 1.1, 0.1)
+PicDetConf_range_scale = (0.95, 1.05, 0.01)  # 自动大小匹配, 左闭右闭区间, 格式 (start, end, step) , 例如(0.95, 1.1, 0.1)
 PicDetConf_cur_scale = None
 PicDetConf_rgb = True  # 是否在RPB模式下匹配
 PicDetConf_bg_remove = False
@@ -338,6 +338,7 @@ class DetBox(Box):
     def __init__(self, sim, x1, y1, x2, y2, name=''):
         super().__init__(x1, y1, x2, y2, name)
         self.sim = float(sim)
+        self.parent_name = ''
 
     @staticmethod
     def new_det_boxes_by_str(s):
@@ -368,10 +369,13 @@ class PicDetV2:
         self.add_boxes(det_boxes)
 
     def add_box(self, det_box: DetBox):
+        det_box.parent_name = self.pic.name
         self.boxes.append(det_box)
 
+
     def add_boxes(self, det_boxes: list[DetBox]):
-        self.boxes.extend(det_boxes)
+        for box in det_boxes:
+            self.add_box(box)
         self.boxes = sorted(self.boxes, key=lambda box: box.sim, reverse=True)
 
     @property
@@ -467,7 +471,7 @@ class MPicDetV2:
             _boxes += pic_det.boxes
         return _boxes
 
-    def get_boxes(self, pic=None, sort_mode=0, dis_err=10):
+    def get_boxes(self, pic=None, sort_mode=0, dis_err=10) -> list[DetBox]:
         boxes = self.boxes
         # todo: 支持指定具体的图片
 

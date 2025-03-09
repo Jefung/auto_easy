@@ -11,12 +11,12 @@ from auto_easy.utils import concurrent_exec_one_func, logger
 
 # 内部全部用cv2进行处理
 def find_pic(source, search: PicV2, det_conf: PicDetConf = None) -> PicDetV2:
+
     pic_source = PicV2.new_auto(source)
+
     pic_search = PicV2.new_auto(search)
     conf: PicDetConf = ConfBase.new_conf_by_pry([PicDetConf(), pic_search.det_conf, det_conf])
 
-    # print(det_conf.box)
-    # 图片缩放匹配,这里并发进行匹配
     # TODO: 优化,记录历史匹配成功的scale,后续优先采纳
     if conf.range_scale is not None and conf.cur_scale is None:
         start = conf.range_scale[0]
