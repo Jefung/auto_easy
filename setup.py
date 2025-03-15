@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='auto_easy',  # 打包后的名称
-    version='0.1.21',  # 版本号
+    version='0.1.22',  # 版本号
     author='Jefung',
     author_email='jefung865424525@gmail.com',
     description='make automated script development easier',
