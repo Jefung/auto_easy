@@ -12,6 +12,10 @@ class DAG(Executor):
         self.retry_mode = retry_mode  # None-不重试, 1-回退重试
         super().__init__(name)
 
+    # @abstractmethod
+    # def _abs_init(self, ctx: Ctx):
+    #     pass
+
     def init(self, ctx: Ctx=None):
         pass
 

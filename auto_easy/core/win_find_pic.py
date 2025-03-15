@@ -1,6 +1,7 @@
 import os
 import time
 
+from auto_easy import draw_rectangles, logger
 from auto_easy.base.find_pic import PicFactory
 from auto_easy.base.find_pic.find_pic import find_pics_v2
 from auto_easy.base.find_pic.model import MPicDetV2, PicDetConf, PicV2
@@ -40,12 +41,19 @@ class WinFindPic(Window, PicFactory):
         return ans
 
     def debug_find_pics(self, src, pics, pic_det_conf: PicDetConf = None) -> MPicDetV2:
-        screen_img = self.capture_window()
-        source = self._cvt_pic(screen_img)
+        # source = self._cvt_pics(src)
         searches = self._cvt_pics(pics)
-        mdet = find_pics_v2(source, searches, pic_det_conf)
+        mdet = find_pics_v2(src, searches, pic_det_conf)
         mdet.merge_same_name(dedup=True)  # 相同图片名称的检测结果合并
         return mdet
+
+    def debug_find_pics_and_show(self, pics, pic_det_conf: PicDetConf = None,title=''):
+        mdet = self.raw_find_pics(pics, pic_det_conf)
+        logger.debug(mdet)
+        img = self.capture_window()
+        draw_img = draw_rectangles(img, mdet.boxes, use_name=True,title=title)
+        draw_img.show()
+
 
     # @timeit_decorator
     def raw_find_pics(self, pics, pic_det_conf: PicDetConf) -> MPicDetV2:
@@ -83,7 +91,7 @@ class WinFindPic(Window, PicFactory):
         if to <= 0:
             sleep = 0
         if sleep is None:
-            sleep = to / 3  # 暂定按检测三次来算, sleep在[0.1,1]之间
+            sleep = to / 5  # 暂定按检测三次来算, sleep在[0.1,1]之间
             sleep = min(sleep, 2)  # 最长sleep时间1秒
             sleep = max(sleep, 0.2)  # 最短sleep时间
             # logger.debug('sleep %.2f', sleep)
@@ -101,6 +109,7 @@ class WinFindPic(Window, PicFactory):
 
             if min_det_num > 0 and len(exists_name) >= min_det_num:
                 break
+
             time.sleep(sleep)
         return mdet
 

@@ -30,7 +30,6 @@ def draw_rectangles(img, boxes: list[Box] = None, title='', use_name=True, show=
     draw = ImageDraw.Draw(image)
 
     font = _get_cn_font(front_size)  # 可能需要调整字体大小
-    print(font)
 
     # 绘制每一个矩形
     boxes = boxes if boxes is not None else []

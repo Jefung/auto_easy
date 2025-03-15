@@ -445,10 +445,15 @@ class MPicDetV2:
 
     @property
     def first_det(self):
+        res = None
         for det in self.pic_det_list:
             if det.is_detected:
-                return det
-        return None
+                if res is None:
+                    res = det
+                else:
+                    if det.box.sim > res.box.sim:
+                        res = det
+        return res
 
     @property
     def is_detected(self):

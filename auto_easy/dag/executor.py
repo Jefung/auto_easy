@@ -2,6 +2,9 @@ import time
 from abc import ABC, abstractmethod
 from random import uniform
 
+from numba.np.arraymath import return_false
+
+from auto_easy import Timeout
 from auto_easy.core.core import get_auto_core
 from auto_easy.models import Ctx
 from auto_easy.utils import loop_until_true, logger, cost_ms, sleep_with_rand
@@ -111,6 +114,49 @@ class ExecutorPicClick(Executor):
         )
         return True
 
+class ExecutorPicClickAndWaitDisappear(Executor):
+    def __init__(self, pic_name, det_to=1, wait_to=1, check_interval=0.5, bf_sleep=0, af_sleep=0.1):
+        self.pic_name = pic_name
+        self.det_to = det_to
+        self.wait_to = wait_to
+        self.check_interval = check_interval
+        self.bf_sleep = bf_sleep
+        self.af_sleep = af_sleep
+        super().__init__(name='图片点击并等待消失({})'.format(pic_name))
+
+    def hit(self, ctx: Ctx) -> bool:
+        mdet = get_auto_core().loop_find_pics(self.pic_name, to=self.det_to)
+        return mdet.is_detected
+
+    def exec(self, ctx: Ctx) -> bool:
+        time.sleep(self.bf_sleep)
+
+
+        # 先点击图片
+        mdet = get_auto_core().loop_find_pics(self.pic_name, to=self.det_to)
+        if not mdet.is_detected:
+            return False
+        logger.debug("[图片点击] 点击图片({}), 区域: {}".format(self.pic_name, mdet.box))
+        get_auto_core().left_click_in_box(mdet.box)
+
+        to = Timeout(self.wait_to)
+        while to.not_timeout():
+            # 检查图片是否消息
+            mdet = get_auto_core().loop_find_pics_not_exists(self.pic_name, to=self.check_interval)
+            if not mdet.is_detected:
+                break
+
+            logger.debug("[图片点击] 图片未消失, 重新点击, 检查次数: {}. ".format(self.pic_name, mdet.box, to.check_times))
+            logger.debug("[图片点击] 点击图片({}), 区域: {}".format(self.pic_name, mdet.box))
+            get_auto_core().left_click_in_box(mdet.box)
+
+
+        if to.is_timeout():
+            logger.debug("[图片点击] 图片在指定时间内点击后仍然未消失, 图片：{}".format(self.pic_name))
+            return False
+
+        time.sleep(self.af_sleep)
+        return True
 
 class ExecutorTryPicClick(Executor):
     def __init__(self, pic_name, det_to=0.5, bf_sleep=0.2, af_sleep=0.3):

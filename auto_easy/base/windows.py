@@ -10,10 +10,27 @@ import win32gui
 import win32ui
 from PIL import Image
 
+from auto_easy.models import Direction
 from auto_easy.models import Box, Point
 from auto_easy.utils import logger, sleep_with_ms
 from auto_easy.utils.cache_util import func_cache_ignore_args
+import ctypes
+import win32gui
+import win32con
 
+def get_window_dpi(hwnd):
+    # 方法1：Windows 10+ 专用 API
+    try:
+        dpi = ctypes.windll.user32.GetDpiForWindow(hwnd)
+        return dpi
+    except WindowsError:
+        pass
+
+    # 方法2：通过设备上下文计算（兼容旧系统）
+    hdc = win32gui.GetDC(hwnd)
+    dpi_x = ctypes.windll.gdi32.GetDeviceCaps(hdc, win32con.LOGPIXELSX)
+    win32gui.ReleaseDC(hwnd, hdc)
+    return dpi_x
 
 # 使用lru_cache装饰器，设置最大缓存数量（可选参数，这里设为None表示无限制）
 @lru_cache(maxsize=None)
@@ -51,20 +68,28 @@ class ClickStatus:
 
 class Window:
     def __init__(self, window_id='', logger=logging.getLogger()):
+        import ctypes
+        # 声明程序为 DPI 感知（需在代码开头执行）
+        ctypes.windll.shcore.SetProcessDpiAwareness(1)
         self.hwnd = None
         if window_id:
             self.hwnd = find_windows_with_prefix(window_id)
             logger.debug('init win_mgr, hwnd {}'.format(self.hwnd))
         self.logger = logger
         self.logger.setLevel(logging.INFO)
-        msg = "[窗口管理器] 标题: {}, 句柄：{}, 大小: <{}>宽高{}".format(self.get_text(), self.hwnd,
+
+        dpi_x = get_window_dpi(self.hwnd)
+        msg = "[窗口管理器] 标题: {}, 句柄：{}, DPI: {}, 大小: <{}>宽高{}".format(self.get_text(), self.hwnd,dpi_x,
                                                                         self.get_client_rect(),
                                                                         self.get_client_size())
+        # print(msg)
         self.logger.info(msg=msg)
         self.prev_click_status = ClickStatus()
         self.latest_pil_img = None
         self.latest_pil_time = 0
         self.send_msg_count = 0
+        self.last_pump_time = time.time()
+        self.pump_interval = 0.2
 
     def get_info(self):
         return "[窗口管理器] 标题: {}, 句柄：{}, 大小: <{}>宽高{}".format(self.get_text(), self.hwnd,
@@ -123,11 +148,14 @@ class Window:
         time.sleep(1)
 
     def check_coor(self, x, y):
+        # pass
         left, top, right, down = self.get_client_rect()
         if not (left <= x <= right and top <= y <= down):
             raise Exception(f'xy(<{x},{y}>) is invalid')
 
     def left_click(self, x, y, press_sec=0.05, af_sleep=0, bf_sleep=0):
+        x = int(x)
+        y = int(y)
         time.sleep(bf_sleep)
 
         self.check_coor(x, y)
@@ -175,6 +203,22 @@ class Window:
 
         self.prev_click_status = ClickStatus(down, x, y)
 
+    def simple_mouse_move(self,x,y,distance,direction:Direction):
+        target_x = x
+        target_y = y
+        if direction == Direction.LEFT:
+            target_x = x - distance
+        elif direction == Direction.RIGHT:
+            target_x = x + distance
+        elif direction == Direction.UP:
+            target_y = y - distance
+        elif direction == Direction.DOWN:
+            target_y = y + distance
+        logger.debug(f'simple_mouse_move {direction} {distance} from <{x},{y}> to <{target_x},{target_y}>')
+
+        self.mouse_move(x,y,target_x,target_y)
+
+
     def mouse_move(self, x1, y1, x2, y2, steps=5, base_delay=0.001):
         dx = (x2 - x1) / steps
         dy = (y2 - y1) / steps
@@ -204,8 +248,11 @@ class Window:
 
             self._mouse_click(True, x, y)
             time.sleep(random_delay)
+            # win32gui.PumpWaitingMessages()
 
         self._mouse_click(False)
+        # win32gui.PumpWaitingMessages()
+        time.sleep(0.1)
 
     def debug_left_click(self, x, y):
         lParam = win32api.MAKELONG(x, y)
@@ -237,9 +284,15 @@ class Window:
         sleep_with_ms(sleep_ms)
 
     def _send_message(self, *args, **kwargs):
-        ok = win32gui.SendMessage(*args, **kwargs)
-        if ok is not None and ok != 0:
-            logger.debug(f'send message failed, {args}, {kwargs}')
+        # 在 PostMessage 版本中，消息被快速添加到队列中，更接近真实的鼠标移动
+        if args[1] in [win32con.WM_MOUSEMOVE,win32con.WM_MOUSEWHEEL]:
+            ok = win32gui.PostMessage(*args, **kwargs)
+        else:
+            ok = win32gui.SendMessage(*args, **kwargs)
+
+        if time.time() - self.last_pump_time >= self.pump_interval:
+            win32gui.PumpWaitingMessages()
+            self.last_pump_time = time.time()
         return ok
 
     def capture(self, box: Box = None, latest_lag=0):

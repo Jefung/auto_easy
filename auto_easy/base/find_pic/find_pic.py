@@ -3,7 +3,7 @@ import time
 from auto_easy.base.find_pic import ConfBase
 from auto_easy.base.find_pic.model import PicV2, PicDetV2, PicDetConf, DetBox, nms_boxes, MPicDetV2
 from auto_easy.base.find_pic.pic_handler import *
-from auto_easy.base.image.draw import show_image_table
+from auto_easy.base.image.draw import show_image_table, show_multi_image
 from auto_easy.base.image.process import contain_color
 from auto_easy.constant import get_test_pic
 from auto_easy.utils import concurrent_exec_one_func, logger
@@ -76,12 +76,16 @@ def find_pic(source, search: PicV2, det_conf: PicDetConf = None) -> PicDetV2:
         his_source.append(img_source)
         his_search.append(img_search)
         titles.append(handler.name)
+
         if conf.debug:
             logger.debug(f'img process: [{handler.name}]')
 
     if conf.debug:
+
         # print(len(his_source))
-        show_image_table([his_source, his_search], titles)
+        show_multi_image(his_source)
+        show_multi_image(his_search)
+        # show_image_table([his_source, his_search], titles)
 
     method = conf.method
     if conf.rgb:
@@ -159,17 +163,18 @@ def find_pics_v2(source,
 
 if __name__ == '__main__':
     conf = PicDetConf()
-    conf.rgb = False
+    # conf.rgb = False
     # conf.bg_remove = True
-    conf.sim = 0.9
+    conf.sim = 0.7
+    conf.color = "160F09-030304"
     # conf.debug = True
     # conf.box = '778,381,812,416'
-    conf.multi_match = False
+    conf.multi_match = True
     # conf.range_scale = '0.90,1.05,0.01'
-    conf.cur_scale = 0.91
+    conf.cur_scale = 0.99
     det = find_pic(
-        get_test_pic('debug/fsdsyc1.bmp'),
-        get_test_pic('debug/40_破坏者碉堡轰炸$$$level=40&type=主动技能.bmp'),
+        get_test_pic('debug/截图.bmp'),
+        get_test_pic('debug/装备选项未选.bmp'),
         conf
     )
     print(det)

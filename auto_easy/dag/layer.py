@@ -129,6 +129,7 @@ class DAGLayerLoopSwitch(DAGLayerDef):
             target_branch = None
             funcs = [branch.executor.hit for branch in self.branches]
             hits = concurrent_exec_multi_func_one_arg(funcs, ctx)
+
             for i, is_hit in enumerate(hits):
                 if is_hit:
                     target_branch = self.branches[i]
