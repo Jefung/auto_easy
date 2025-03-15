@@ -169,7 +169,7 @@ class Window:
         # 为了避免点击到边缘,这里先将区域缩小到scale比例
         scaled_box = box.copy_by_scale(scale)
         point = scaled_box.get_rand_point()
-        # logger.debug(f"left_click_in_box: {scaled_box} -> {point}")
+
         self.left_click(point.x, point.y, af_sleep=af_sleep, bf_sleep=bf_sleep)
 
     def left_down(self, x, y):
@@ -284,6 +284,7 @@ class Window:
         sleep_with_ms(sleep_ms)
 
     def _send_message(self, *args, **kwargs):
+        logger.debug(f'_send_message {args} {kwargs}')
         # 在 PostMessage 版本中，消息被快速添加到队列中，更接近真实的鼠标移动
         if args[1] in [win32con.WM_MOUSEMOVE,win32con.WM_MOUSEWHEEL]:
             ok = win32gui.PostMessage(*args, **kwargs)
@@ -324,7 +325,6 @@ class Window:
 
     @func_cache_ignore_args(0.1)
     def _capture_window(self) -> PIL.Image:
-        # logger.debug('capture_window without cache')
         hwnd = self.hwnd
         x1, y1 = 0, 0
         x2, y2 = self.get_client_size()

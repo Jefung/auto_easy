@@ -28,25 +28,28 @@ class DAGLayerDef(Executor):
         super().__init__(name)
         self.conf = conf if conf is not None else LayerConf()
 
+    def _init_optional(self, ctx: Ctx) -> bool:
+        return True
+
     @abstractmethod
-    def hit(self, ctx: Ctx) -> bool:
+    def _hit_optional(self, ctx: Ctx) -> bool:
         pass
 
     @abstractmethod
-    def exec(self, ctx: Ctx):
+    def _exec_optional(self, ctx: Ctx):
         pass
 
 
 class DAGLayerSimple(DAGLayerDef):
     def __init__(self, executor: Executor, conf: LayerConf = None):
-        super().__init__(executor.name, conf)
+        super().__init__('Layer: ' + executor.name, conf)
         self.executor = executor
 
-    def hit(self, ctx: Ctx) -> bool:
+    def _hit_optional(self, ctx: Ctx) -> bool:
         return self.executor.hit(ctx)
 
-    def exec(self, ctx: Ctx):
-        return self.executor.exec(ctx)
+    def _exec_optional(self, ctx: Ctx):
+        return self.executor.run(ctx)
 
 
 class LayerLoopConf(LayerConf):
@@ -62,7 +65,7 @@ class DAGLayerLoop(DAGLayerSimple):
         super().__init__(executor, conf)
         self.conf = conf
 
-    def exec(self, ctx: Ctx):
+    def _exec_optional(self, ctx: Ctx):
         success_cnt = 0
         for i in range(1, self.conf.loop_times):
             success = self.executor.run(ctx)
@@ -81,7 +84,7 @@ class DAGLayerSwitch(DAGLayerDef):
         self.switch_to = switch_to
         self.target_exec = None
 
-    def hit(self, ctx: Ctx) -> bool:
+    def _hit_optional(self, ctx: Ctx) -> bool:
         # 实现switch效果,选择命中的exec
         to = Timeout(self.switch_to)
         self.target_exec = None
@@ -97,7 +100,7 @@ class DAGLayerSwitch(DAGLayerDef):
             return True
         return False
 
-    def exec(self, ctx: Ctx):
+    def _exec_optional(self, ctx: Ctx):
         return self.target_exec.run(ctx)
 
 
@@ -116,13 +119,13 @@ class DAGLayerLoopSwitch(DAGLayerDef):
         self.min_loop_time = min_loop_time
         self.bf_sleep = bf_sleep
 
-    def hit(self, ctx: Ctx) -> bool:
+    def _hit_optional(self, ctx: Ctx) -> bool:
         return True
 
     def add_branch(self, executor: Executor, is_finish=False):
         self.branches.append(SwitchBranch(executor, is_finish))
 
-    def exec(self, ctx: Ctx):
+    def _exec_optional(self, ctx: Ctx):
         time.sleep(self.bf_sleep)
         to = Timeout(self.loop_to)
         while to.not_timeout():
@@ -157,13 +160,13 @@ class DAGLayerSwitchOne(DAGLayerDef):
         self.loop_sleep = loop_sleep
         self.bf_sleep = bf_sleep
 
-    def hit(self, ctx: Ctx) -> bool:
+    def _hit_optional(self, ctx: Ctx) -> bool:
         return True
 
     def add_branch(self, executor: Executor, is_finish=False):
         self.branches.append(SwitchBranch(executor, is_finish))
 
-    def exec(self, ctx: Ctx):
+    def _exec_optional(self, ctx: Ctx):
         time.sleep(self.bf_sleep)
         to = Timeout(self.loop_to)
         target_branch = None

@@ -124,7 +124,6 @@ class WinFindPic(Window, PicFactory):
         mdet = MPicDetV2()
         to_searches = searches
         while to.not_timeout():
-            print(to_searches)
             mdet = self.raw_find_pics(to_searches, det_conf)
             exists_name = mdet.get_output_exists_names()
             to_searches = [search for search in to_searches if search.name in exists_name]

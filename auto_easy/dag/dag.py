@@ -1,30 +1,31 @@
+from abc import abstractmethod
 from typing import List
 
-from auto_easy.dag.executor import Executor
+from auto_easy.dag.executor import Executor, ExecutorDebug
 from auto_easy.dag.layer import DAGLayerDef, LayerConf, DAGLayerSimple
 from auto_easy.models import Ctx
 from auto_easy.utils import is_actual_subclass, logger
 
 
 class DAG(Executor):
-    def __init__(self, name, retry_mode=None):
+    def __init__(self, name, retry_mode=True):
         self.layers: List[DAGLayerDef] = []
         self.retry_mode = retry_mode  # None-不重试, 1-回退重试
         super().__init__(name)
 
-    # @abstractmethod
-    # def _abs_init(self, ctx: Ctx):
-    #     pass
+    def _init_optional(self, ctx: Ctx) -> bool:
+        return self._init_layer(ctx)
 
-    def init(self, ctx: Ctx=None):
+    @abstractmethod
+    def _init_layer(self, ctx: Ctx):
         pass
 
-    def hit(self, ctx: Ctx) -> bool:
+    def _hit_optional(self, ctx: Ctx) -> bool:
         if len(self.layers) == 0:
             raise Exception("Dag empty, no layers added, name: {}".format(self.name))
         return self.layers[0].hit(ctx=ctx)
 
-    def exec(self, ctx: Ctx) -> bool:
+    def _exec_optional(self, ctx: Ctx) -> bool:
         if len(self.layers) == 0:
             raise Exception("Dag empty, no layers added, name: {}".format(self.name))
 
@@ -49,8 +50,11 @@ class DAG(Executor):
                     retry += 1
                     continue
 
-            logger.debug(f'DAG({self.name}) 执行失败, layer: {layer.name}')
+            logger.error(f'DAG({self.name}) 执行失败, layer: {layer.name}')
             return False
+
+        if self.name in ['售卖物品','装备分解']:
+            logger.debug('debug')
 
         logger.debug(f'结束执行DAG: {self.name}')
         return True
@@ -74,22 +78,49 @@ class DAG(Executor):
         dag.add_layers(executors)
         return dag
 
+class SimpleDAG(DAG):
+    def __init__(self, name, executors: List[Executor],retry_mode=True):
+        super().__init__(name,retry_mode)
+        for executor in executors:
+            self.add_layer(executor)
 
+    def _init_layer(self, ctx: Ctx):
+        pass
+
+class EmptyDAG(DAG):
+    def __init__(self,name, retry_mode=True):
+        super().__init__(name, retry_mode=retry_mode)
+
+    def _init_layer(self,ctx: Ctx):
+        pass
+
+# todo: 待废弃
 class SubDAG2Executor(Executor):
     def __init__(self, dag: DAG):
         super().__init__(dag.name)
         self.dag = dag
 
-    def hit(self, ctx: Ctx) -> bool:
+    def _hit_optional(self, ctx: Ctx) -> bool:
         return self.dag.hit(ctx=ctx)
 
-    def exec(self, ctx: Ctx) -> bool:
+    def _exec_optional(self, ctx: Ctx) -> bool:
         return self.dag.run(ctx=ctx)
 
     @staticmethod
     def cvt(dag: DAG):
         return SubDAG2Executor(dag=dag)
 
+class TestDag(DAG):
+    def __init__(self):
+        super().__init__('测试重试功能')
+
+    def _init_layer(self, ctx: Ctx):
+        self.add_layer(ExecutorDebug('layer1'))
+        self.add_layer(ExecutorDebug('layer2', exec_wait=1))
+        self.add_layer(ExecutorDebug('layer3', hit_ret=True))
+
 
 if __name__ == "__main__":
+    ans = TestDag().run(Ctx())
+    print(ans)
     pass

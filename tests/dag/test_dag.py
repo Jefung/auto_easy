@@ -9,7 +9,7 @@ class TestDag(DAG):
     def __init__(self):
         super().__init__('测试重试功能')
 
-    def init(self):
+    def _init_layer(self, ctx: Ctx):
         self.add_layer(ExecutorDebug('layer1'))
         self.add_layer(ExecutorDebug('layer2', exec_wait=1))
         self.add_layer(ExecutorDebug('layer3', hit_ret=True))
@@ -29,7 +29,7 @@ class TestDAG(TestCase):
             def __init__(self):
                 super().__init__('测试Sub功能')
 
-            def init(self):
+            def _init_layer(self, ctx: Ctx):
                 print('TestSubDag init')
                 self.add_layer(TestDag())
                 self.add_layer(DAGLayerSimple(ExecutorDebug('after_sub_dag',hit_ret=True)))
