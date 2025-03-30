@@ -4,7 +4,7 @@ from random import uniform
 
 from numba.np.arraymath import return_false
 
-from auto_easy import Timeout
+from auto_easy import Timeout, PicDetConf, Direction
 from auto_easy.core.core import get_auto_core
 from auto_easy.models import Ctx
 from auto_easy.utils import loop_until_true, logger, cost_ms, sleep_with_rand
@@ -53,7 +53,7 @@ class Executor(ABC):
             logger.error("[执行] 中途执行失败: {}".format(self.name))
             return False
 
-        logger.debug("[执行] {} 执行完成, 耗时： {}ms".format(self.name, cost_ms(start)))
+        logger.debug("[执行] {} 执行成功, 耗时： {}ms".format(self.name, cost_ms(start)))
         return True
 
 
@@ -97,6 +97,7 @@ class ExecutorPicClick(Executor):
         super().__init__(name='图片点击({})'.format(pic_name))
 
     def _hit_optional(self, ctx: Ctx) -> bool:
+        # logger.debug('_hit_optional')
         mdet = get_auto_core().loop_find_pics(self.pic_name, to=self.det_to)
         if not mdet.all_detected:
             if self.hit_err_print:
@@ -143,19 +144,19 @@ class ExecutorPicClickAndWaitDisappear(Executor):
         if not mdet.is_detected:
             return False
         logger.debug("[图片点击] 点击图片({}), 区域: {}".format(self.pic_name, mdet.box))
-        get_auto_core().left_click_in_box(mdet.box)
+        get_auto_core().left_click_in_box(mdet.box,af_sleep=1)
 
         to = Timeout(self.wait_to)
         while to.not_timeout():
 
-            # 检查图片是否消息
+            # 检查图片是否消失
             mdet = get_auto_core().loop_find_pics_not_exists(self.pic_name, to=self.check_interval)
             if not mdet.is_detected:
                 break
 
             logger.debug("[图片点击] 图片未消失, 重新点击, 检查次数: {}. ".format(self.pic_name, mdet.box, to.check_times))
             logger.debug("[图片点击] 点击图片({}), 区域: {}".format(self.pic_name, mdet.box))
-            get_auto_core().left_click_in_box(mdet.box)
+            get_auto_core().left_click_in_box(mdet.box,af_sleep=1)
 
 
         if to.is_timeout():
@@ -189,6 +190,61 @@ class ExecutorTryPicClick(Executor):
         )
         return True
 
+class ExecutorTryPicMultiClick(Executor):
+    def __init__(self, pic_name, det_to=0.5, bf_sleep=0.2, af_sleep=0.3):
+        self.pic_name = pic_name
+        self.det_to = det_to
+        self.bf_sleep = bf_sleep
+        self.af_sleep = af_sleep
+        super().__init__(name='多图片点击({})'.format(pic_name))
+
+    def _hit_optional(self, ctx: Ctx) -> bool:
+        return True
+
+    def _exec_optional(self, ctx: Ctx) -> bool:
+        conf = PicDetConf()
+        conf.multi_match = True
+
+        mdet = get_auto_core().loop_find_pics(self.pic_name, to=self.det_to,det_conf=conf)
+        logger.debug(mdet)
+        if not mdet.is_detected:
+            return True
+
+        for box in mdet.boxes:
+            logger.info("[点击] 点击图片({}), 区域: {}".format(self.pic_name, mdet.box))
+            get_auto_core().left_click_in_box(
+                box,
+                af_sleep=0.5 * uniform(0.8, 1.2)
+            )
+        return True
+
+class ExecutorTryClickPicDisappear(Executor):
+    def __init__(self, pic_name, det_to=0.5, wait_to=5):
+        self.pic_name = pic_name
+        self.det_to = det_to
+        self.wait_to = wait_to
+        super().__init__(name='图片点击消失({})'.format(pic_name))
+
+    def _hit_optional(self, ctx: Ctx) -> bool:
+        return True
+
+    def _exec_optional(self, ctx: Ctx) -> bool:
+        mdet = get_auto_core().loop_find_pics(self.pic_name, to=self.det_to)
+        if not mdet.is_detected:
+            return True
+
+        check_interval = self.wait_to / 5
+        to = Timeout(self.wait_to)
+        while to.not_timeout():
+            # 检查图片是否消失
+            mdet = get_auto_core().loop_find_pics_not_exists(self.pic_name, to=check_interval)
+            if not mdet.is_detected:
+                return True
+            logger.debug("[图片消失] 图片未消失, 重新点击, 检查次数: {}. ".format(self.pic_name, mdet.box, to.check_times))
+            logger.debug("[图片消失] 点击图片({}), 区域: {}".format(self.pic_name, mdet.box))
+            get_auto_core().left_click_in_box(mdet.box)
+        logger.debug("[图片消失] 图片在指定时间内点击后仍然未消失, 图片：{}".format(self.pic_name))
+        return False
 
 class ExecutorPicDet(Executor):
     def __init__(self, pic_name, det_to=2, af_sleep=0):
@@ -206,6 +262,32 @@ class ExecutorPicDet(Executor):
     def _exec_optional(self, ctx: Ctx) -> bool:
         sleep_with_rand(self.af_sleep)
         return True
+
+
+class ExecutorPicDetAndMouseMove(Executor):
+    def __init__(self, pic_name, distance, down=True,det_to=2, af_sleep=0):
+        super().__init__(name='图片检测+滑轮移动({})'.format(pic_name))
+        self.pic_name = pic_name
+        self.det_to = det_to
+        self.af_sleep = af_sleep
+        self.down = down
+        self.distance = distance
+
+    def _hit_optional(self, ctx: Ctx) -> bool:
+        det = get_auto_core().loop_find_pics(self.pic_name, to=self.det_to)
+        if not det.is_detected:
+            return False
+        return True
+
+    def _exec_optional(self, ctx: Ctx) -> bool:
+        det = get_auto_core().loop_find_pics(self.pic_name, to=self.det_to)
+        if not det.is_detected:
+            return False
+        point = det.box.get_rand_point()
+        get_auto_core().wheel_move(self.down,self.distance, point)
+        time.sleep(self.af_sleep)
+        return True
+
 
 class ExecutorPicDetNotExists(Executor):
     def __init__(self, pic_name, det_to=3):
@@ -246,13 +328,16 @@ class ExecutorPicDisappear(Executor):
 
 
 class ExecutorPicTFSwitch(Executor):
-    def __init__(self, true_pic, false_pic, want_true, det_to=2, af_sleep=0.5):
+    def __init__(self, true_pic, false_pic, want_true, det_to=2, use_max_score=True,af_sleep=0.5, click_area_rate=(0,0,1,1)):
         super().__init__(name='图片开关检测({}-{})[{}]'.format(true_pic, false_pic, want_true))
         self.want_true = want_true
         self.true_pic = true_pic
         self.false_pic = false_pic
         self.det_to = det_to
         self.af_sleep = af_sleep
+        self.click_area_rate = click_area_rate
+        self.use_max_score = use_max_score
+
 
     @property
     def pics_name(self):
@@ -260,19 +345,19 @@ class ExecutorPicTFSwitch(Executor):
 
     def _hit_optional(self, ctx: Ctx) -> bool:
         # 至少检测一张图片
-        logger.debug('开始检测两张图片：{}'.format(self.pics_name))
-        get_auto_core().save('检测图片')
         det = get_auto_core().loop_find_pics(self.pics_name, to=self.det_to, min_det_num=1)
-        logger.debug('检测结果：{}'.format(det))
+        logger.debug('双图检测结果：{}'.format(det))
         if not det.is_detected:
             logger.debug('同时不存在两张图片：{}'.format(self.pics_name))
             return False
-        if det.check(includes=self.pics_name):
+        if not self.use_max_score and det.check(includes=self.pics_name):
+            logger.debug('不存在两张图片：{}'.format(self.pics_name))
             return False
         return True
 
     def _exec_optional(self, ctx: Ctx) -> bool:
         mdet = get_auto_core().loop_find_pics(self.pics_name, to=self.det_to, min_det_num=1)
+        mdet.filter_not_top1_det() # 只保留分数最高的结果，解决了双图同时存在的问题(识别误差)
         to_click_pic = ''
         if self.want_true and mdet.check(includes=[self.false_pic]):
             to_click_pic = self.false_pic
@@ -282,10 +367,13 @@ class ExecutorPicTFSwitch(Executor):
 
         if to_click_pic == '':
             return True
+
         box = mdet.get(to_click_pic).box
+        box = box.crop_by_rate(self.click_area_rate[0], self.click_area_rate[1], self.click_area_rate[2], self.click_area_rate[3])
+
         logger.debug(f'为了达到目标({self.want_true}), 点击图片({to_click_pic}-{box})')
         get_auto_core().left_click_in_box(
-            mdet.box,
+            box,
             af_sleep=self.af_sleep * uniform(0.8, 1.2),
         )
         return True

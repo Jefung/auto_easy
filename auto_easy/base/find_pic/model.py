@@ -444,7 +444,7 @@ class MPicDetV2:
         self.pic_det_list = pic_det_list if pic_det_list is not None else []
 
     @property
-    def first_det(self):
+    def first_det(self) -> PicDetV2:
         res = None
         for det in self.pic_det_list:
             if det.is_detected:
@@ -454,6 +454,13 @@ class MPicDetV2:
                     if det.box.sim > res.box.sim:
                         res = det
         return res
+
+    def filter_not_top1_det(self):
+        top1_det = self.first_det
+        if top1_det is None:
+            self.pic_det_list = []
+        else:
+            self.pic_det_list = [top1_det]
 
     @property
     def is_detected(self):

@@ -214,7 +214,7 @@ class Window:
             target_y = y - distance
         elif direction == Direction.DOWN:
             target_y = y + distance
-        logger.debug(f'simple_mouse_move {direction} {distance} from <{x},{y}> to <{target_x},{target_y}>')
+        # logger.debug(f'simple_mouse_move {direction} {distance} from <{x},{y}> to <{target_x},{target_y}>')
 
         self.mouse_move(x,y,target_x,target_y)
 
@@ -284,7 +284,6 @@ class Window:
         sleep_with_ms(sleep_ms)
 
     def _send_message(self, *args, **kwargs):
-        logger.debug(f'_send_message {args} {kwargs}')
         # 在 PostMessage 版本中，消息被快速添加到队列中，更接近真实的鼠标移动
         if args[1] in [win32con.WM_MOUSEMOVE,win32con.WM_MOUSEWHEEL]:
             ok = win32gui.PostMessage(*args, **kwargs)

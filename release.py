@@ -4,6 +4,9 @@ import shutil
 import subprocess
 import sys
 
+from twine.commands.upload import upload
+from twine.settings import Settings
+
 
 def parse_arguments():
     """解析命令行参数并提供默认值。"""
@@ -116,3 +119,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

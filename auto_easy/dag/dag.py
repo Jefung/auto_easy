@@ -23,21 +23,34 @@ class DAG(Executor):
     def _hit_optional(self, ctx: Ctx) -> bool:
         if len(self.layers) == 0:
             raise Exception("Dag empty, no layers added, name: {}".format(self.name))
-        return self.layers[0].hit(ctx=ctx)
+        hit = self.layers[0].hit(ctx=ctx)
+        if hit:
+            return True
+        if self.layers[0].conf.break_err:
+            return True
+        return hit
+        # return self.layers[0].hit(ctx=ctx)
 
     def _exec_optional(self, ctx: Ctx) -> bool:
         if len(self.layers) == 0:
             raise Exception("Dag empty, no layers added, name: {}".format(self.name))
 
-        logger.debug(f'开始执行DAG: {self.name}')
+        logger.info(f'开始执行DAG: {self.name}')
         idx = 0
         retry = 0
         while idx < len(self.layers):
+
             layer = self.layers[idx]
             succ = False
             if layer.hit(ctx=ctx):
                 if layer.run(ctx=ctx):
                     succ = True
+            # logger.debug(f'layer [{idx}]-{layer.name} result: {succ}')
+            if not succ:
+                if layer.conf.break_err:
+                    logger.info(f'Layer({layer.name}) 未命中, 结束DAG执行')
+                    break
+
             if succ or layer.conf.skip_err:
                 idx += 1
                 continue
@@ -53,8 +66,6 @@ class DAG(Executor):
             logger.error(f'DAG({self.name}) 执行失败, layer: {layer.name}')
             return False
 
-        if self.name in ['售卖物品','装备分解']:
-            logger.debug('debug')
 
         logger.debug(f'结束执行DAG: {self.name}')
         return True

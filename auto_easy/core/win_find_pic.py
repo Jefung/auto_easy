@@ -1,6 +1,8 @@
 import os
 import time
 
+import PIL
+
 from auto_easy import draw_rectangles, logger
 from auto_easy.base.find_pic import PicFactory
 from auto_easy.base.find_pic.find_pic import find_pics_v2
@@ -47,10 +49,18 @@ class WinFindPic(Window, PicFactory):
         mdet.merge_same_name(dedup=True)  # 相同图片名称的检测结果合并
         return mdet
 
-    def debug_find_pics_and_show(self, pics, pic_det_conf: PicDetConf = None,title=''):
-        mdet = self.raw_find_pics(pics, pic_det_conf)
+    def debug_find_pics_and_show(self, pics, pic_det_conf: PicDetConf = None,title='',src_path=''):
+        if src_path == '':
+            mdet = self.raw_find_pics(pics, pic_det_conf)
+            img = self.capture_window()
+        else:
+            mdet = self.debug_find_pics(src_path, pics, pic_det_conf)
+            img = PIL.Image.open(src_path)
         logger.debug(mdet)
-        img = self.capture_window()
+        for det in mdet.pic_det_list:
+            if det.is_detected:
+                logger.debug(det.pic.path)
+
         draw_img = draw_rectangles(img, mdet.boxes, use_name=True,title=title)
         draw_img.show()
 

@@ -8,10 +8,11 @@ from auto_easy.utils import set_obj_by_dict, Timeout, logger, concurrent_exec_mu
 
 
 class LayerConf:
-    def __init__(self, skip_err=False):
+    def __init__(self, skip_err=False, break_err = False):
         # 通用配置: 控制DAG图的运行逻辑
         self.name = ''
         self.skip_err = skip_err  # 忽略该层错误,继续往下执行,达到类似节点跳过的效果
+        self.break_err = break_err    # 该层不命中，直接结束后续的执行
 
         # 定制化配置
         self.type = DAGLayerSimple
@@ -129,6 +130,7 @@ class DAGLayerLoopSwitch(DAGLayerDef):
         time.sleep(self.bf_sleep)
         to = Timeout(self.loop_to)
         while to.not_timeout():
+            # logger.debug(f'[循环多分支路由] 第{to.check_times}次循环')
             target_branch = None
             funcs = [branch.executor.hit for branch in self.branches]
             hits = concurrent_exec_multi_func_one_arg(funcs, ctx)
@@ -137,10 +139,17 @@ class DAGLayerLoopSwitch(DAGLayerDef):
                 if is_hit:
                     target_branch = self.branches[i]
                     break
+
             if not target_branch:
                 time.sleep(self.loop_sleep)
                 continue
-            ok = target_branch.executor.run(ctx)
+
+            # 上面是并发执行的，可能有的branch命中后，但是要等待其他分支，导致target_branch此时不再命中
+            # todo：上面的并行分支改为有一个命中则立马返回
+            if target_branch.executor.hit(ctx):
+                ok = target_branch.executor.run(ctx)
+            else:
+                continue
             if not ok:
                 logger.debug('Layer(循环多分支路由) 执行失败, Executor: {}'.format(target_branch.executor.name))
                 return False
