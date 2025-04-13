@@ -86,7 +86,7 @@ class ExecutorDebug(Executor):
 
 
 class ExecutorPicClick(Executor):
-    def __init__(self, pic_name, det_to=2, bf_sleep=0.2, af_sleep=0.2, x_offset=0, y_offset=0, hit_err_print=True):
+    def __init__(self, pic_name, det_to=2, bf_sleep=0.2, af_sleep=0.2, x_offset=0, y_offset=0, hit_err_print=True, click_area_rate=(0,0,1,1)):
         self.pic_name = pic_name
         self.det_to = det_to
         self.bf_sleep = bf_sleep
@@ -94,6 +94,7 @@ class ExecutorPicClick(Executor):
         self.x_offset = x_offset  # 点击偏移量
         self.y_offset = y_offset  # 点击偏移量
         self.hit_err_print = hit_err_print
+        self.click_area_rate = click_area_rate
         super().__init__(name='图片点击({})'.format(pic_name))
 
     def _hit_optional(self, ctx: Ctx) -> bool:
@@ -113,6 +114,7 @@ class ExecutorPicClick(Executor):
         logger.debug("[图片点击] 点击图片({}), 区域: {}".format(self.pic_name, mdet.box))
 
         box = mdet.box
+        box = box.crop_by_rate(self.click_area_rate[0], self.click_area_rate[1], self.click_area_rate[2], self.click_area_rate[3])
         box.move(self.x_offset, self.y_offset)
         get_auto_core().left_click_in_box(
             box,
@@ -258,6 +260,23 @@ class ExecutorPicDet(Executor):
         if not det.is_detected:
             return False
         return True
+
+    def _exec_optional(self, ctx: Ctx) -> bool:
+        sleep_with_rand(self.af_sleep)
+        return True
+
+class ExecutorPicNotExists(Executor):
+    def __init__(self, pic_name, det_to=2, af_sleep=0):
+        super().__init__(name='图片检测不存在({})'.format(pic_name))
+        self.pic_name = pic_name
+        self.det_to = det_to
+        self.af_sleep = af_sleep
+
+    def _hit_optional(self, ctx: Ctx) -> bool:
+        det = get_auto_core().loop_find_pics(self.pic_name, to=self.det_to)
+        if not det.is_detected:
+            return True
+        return False
 
     def _exec_optional(self, ctx: Ctx) -> bool:
         sleep_with_rand(self.af_sleep)

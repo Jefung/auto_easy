@@ -15,13 +15,14 @@ warnings.filterwarnings("ignore", category=FutureWarning)
 
 
 class ModelConf:
-    def __init__(self, name, pt_path, prob=0.5, iou=0.45):
+    def __init__(self, name, pt_path, prob=0.5, iou=0.45, pre_load=False):
         self.name = name
         self.pt_path = pt_path
         self.prob = prob
         self.iou = iou
         self.agnostic = False
         self.multi_label = True
+        self.pre_load = pre_load
 
 
 class YoloObj:
@@ -79,7 +80,7 @@ class AIYoloV5(AIYolo):
     def __init__(self, conf: ModelConf):
         self.conf = conf
         self.model = None
-        super().__init__(self.conf.name)
+        super().__init__(self.conf.name,preload=self.conf.pre_load)
 
     def init_model(self):
         conf = self.conf

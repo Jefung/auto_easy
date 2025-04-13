@@ -1,5 +1,7 @@
 import time
 
+from exceptiongroup import catch
+
 from auto_easy.base.find_pic import ConfBase
 from auto_easy.base.find_pic.model import PicV2, PicDetV2, PicDetConf, DetBox, nms_boxes, MPicDetV2
 from auto_easy.base.find_pic.pic_handler import *
@@ -88,16 +90,24 @@ def find_pic(source, search: PicV2, det_conf: PicDetConf = None) -> PicDetV2:
         # show_image_table([his_source, his_search], titles)
 
     method = conf.method
-    if conf.rgb:
-        s_bgr = cv2.split(img_source)  # Blue Green Red
-        i_bgr = cv2.split(img_search)
-        weight = (0.33, 0.33, 0.33)
-        resbgr = [0, 0, 0]
-        for i in range(3):  # bgr
-            resbgr[i] = cv2.matchTemplate(i_bgr[i], s_bgr[i], method)
-        res = resbgr[0] * weight[0] + resbgr[1] * weight[1] + resbgr[2] * weight[2]
-    else:
-        res = cv2.matchTemplate(img_source, img_search, method)
+    try:
+        if conf.rgb:
+            s_bgr = cv2.split(img_source)  # Blue Green Red
+            i_bgr = cv2.split(img_search)
+            weight = (0.33, 0.33, 0.33)
+            resbgr = [0, 0, 0]
+            for i in range(3):  # bgr
+                resbgr[i] = cv2.matchTemplate(i_bgr[i], s_bgr[i], method)
+            res = resbgr[0] * weight[0] + resbgr[1] * weight[1] + resbgr[2] * weight[2]
+        else:
+            res = cv2.matchTemplate(img_source, img_search, method)
+    except Exception as ex:
+        logger.error(f'img process catch exception: {ex}, return empty picDet')
+        return  PicDetV2(
+                pic_search,
+                [],
+                cur_scale
+            )
 
     w, h = img_search.shape[1], img_search.shape[0]
     yloc, xloc = np.where(res >= conf.sim)

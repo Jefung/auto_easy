@@ -463,7 +463,7 @@ class MPicDetV2:
             self.pic_det_list = [top1_det]
 
     @property
-    def is_detected(self):
+    def is_detected(self) -> bool:
         for pic_det in self.pic_det_list:
             if pic_det.is_detected:
                 return True
@@ -526,6 +526,7 @@ class MPicDetV2:
         excludes = excludes if excludes is not None else []
         if not isinstance(includes, list):
             includes = [includes]
+
         for name in includes:
             det = self.get(name)
             if det is None or not det.is_detected:

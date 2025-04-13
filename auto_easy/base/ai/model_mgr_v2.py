@@ -19,11 +19,16 @@ class AIModelBase:
             async_thread(self._async_init)
 
     def _async_init(self):
+        if self.start_init:
+            return
         # 在这里实现异步初始化的通用逻辑
         self.start_init = True
         self.init_model()
         self.inited = True
         logger.debug("init model: {}".format(self.name))
+
+    def start_init_model(self):
+        self._async_init()
 
     def wait_model_init(self):
         if not self.start_init:
@@ -33,6 +38,7 @@ class AIModelBase:
 
     def predict(self, *args, **kwargs):
         # 检查模型是否已初始化，如果未初始化则等待初始化完成
+        logger.debug("predict: {}".format(self.name))
         self.wait_model_init()
         return self.predict(*args, **kwargs)
 

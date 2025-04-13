@@ -93,8 +93,8 @@ class WinFindPic(Window, PicFactory):
         return self.raw_find_pics(pics, conf)
 
     def exists_pics(self, pics) -> bool:
-        pics = self._cvt_pics(pics)
-        mdet = self.raw_find_pics(pics, pic_det_conf=None, pics_det_conf=None)
+        searches = self._cvt_pics(pics)
+        mdet = self.raw_find_pics(searches, pic_det_conf=None)
         return mdet.check(includes=pics)
 
     def loop_find_pics(self, pics, to=1, sleep=None, min_det_num=-1, det_conf: PicDetConf = None) -> MPicDetV2:

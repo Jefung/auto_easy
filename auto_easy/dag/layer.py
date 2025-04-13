@@ -112,13 +112,14 @@ class SwitchBranch:
 
 
 class DAGLayerLoopSwitch(DAGLayerDef):
-    def __init__(self, loop_to=1, min_loop_time=0, loop_sleep=0.1, bf_sleep=0):
+    def __init__(self, loop_to=1, min_loop_time=0, loop_sleep=0.1, bf_sleep=0, ignore_branch_err=False):
         super().__init__('循环多分支路由')
         self.branches: list[SwitchBranch] = []
         self.loop_to = loop_to
         self.loop_sleep = loop_sleep
         self.min_loop_time = min_loop_time
         self.bf_sleep = bf_sleep
+        self.ignore_branch_err = ignore_branch_err
 
     def _hit_optional(self, ctx: Ctx) -> bool:
         return True
@@ -127,6 +128,7 @@ class DAGLayerLoopSwitch(DAGLayerDef):
         self.branches.append(SwitchBranch(executor, is_finish))
 
     def _exec_optional(self, ctx: Ctx):
+        logger.info('Layer(循环多分支路由) 开始执行')
         time.sleep(self.bf_sleep)
         to = Timeout(self.loop_to)
         while to.not_timeout():
@@ -150,7 +152,7 @@ class DAGLayerLoopSwitch(DAGLayerDef):
                 ok = target_branch.executor.run(ctx)
             else:
                 continue
-            if not ok:
+            if not ok and not self.ignore_branch_err:
                 logger.debug('Layer(循环多分支路由) 执行失败, Executor: {}'.format(target_branch.executor.name))
                 return False
 

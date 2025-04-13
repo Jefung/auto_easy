@@ -1,6 +1,7 @@
 from abc import abstractmethod
 from typing import List
 
+from auto_easy import get_auto_core
 from auto_easy.dag.executor import Executor, ExecutorDebug
 from auto_easy.dag.layer import DAGLayerDef, LayerConf, DAGLayerSimple
 from auto_easy.models import Ctx
@@ -62,7 +63,7 @@ class DAG(Executor):
                     idx = idx - 1
                     retry += 1
                     continue
-
+            get_auto_core().save('DAG执行失败_{}'.format(self.name))
             logger.error(f'DAG({self.name}) 执行失败, layer: {layer.name}')
             return False
 
