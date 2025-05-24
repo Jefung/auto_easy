@@ -86,6 +86,9 @@ class AIYoloV5(AIYolo):
         conf = self.conf
         # # 禁用所有级别的日志记录
         # logger.disabled = True
+        import os
+        os.environ['GITHUB_HOST'] = 'https://hub.fastgit.org'  # 使用 FastGit 镜像
+        # os.environ['TORCH_HOME'] = '/path/to/your/cache'  # 指定模型缓存路径（可选）
         model = torch.hub.load('ultralytics/yolov5', 'custom', verbose=True, path=conf.pt_path)
 
         # 将模型设置为eval模式，关闭一些训练相关的模块（如Dropout等），提升性能
@@ -96,11 +99,32 @@ class AIYoloV5(AIYolo):
         model.agnostic = conf.agnostic  # 设置是否进行类别无关的NMS，False表示按照类别进行NMS筛选
         model.multi_label = conf.multi_label  # 设置是否允许每个检测框有多个标签，False表示每个检测框只对应一个类别
         self.model = model
-        logger.debug(f'模型({conf.name})完成加载')
+        logger.debug(f'Yolo模型({conf.name})完成加载')
+
+    def close_model(self):
+        import gc
+        allocated_before = torch.cuda.memory_allocated()
+        reserved_before = torch.cuda.memory_reserved()
+
+        logger.debug(f'释放前显存使用情况: 分配的显存: {allocated_before}, 保留的显存: {reserved_before}')
+
+        pre_model = self.model
+        self.model = None
+        del pre_model
+        import gc
+        gc.collect()
+        torch.cuda.empty_cache()
+        allocated_after = torch.cuda.memory_allocated()
+        reserved_after = torch.cuda.memory_reserved()
+        logger.debug(f'释放后显存使用情况: 分配的显存: {allocated_after}, 保留的显存: {reserved_after}')
+        logger.debug(f'模型({self.conf.name})已释放')
+
 
     def predict(self, img) -> MYoloItem:
         if self.use_rpc():
             return self.rpc_call(img)
+        # logger.debug('call predict')
+
         self.wait_model_init()
         img = img_2_ndarray_rgb(img)
         height, width = img.shape[:2]

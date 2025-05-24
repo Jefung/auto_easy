@@ -275,6 +275,7 @@ class ExecutorPicNotExists(Executor):
     def _hit_optional(self, ctx: Ctx) -> bool:
         det = get_auto_core().loop_find_pics(self.pic_name, to=self.det_to)
         if not det.is_detected:
+            logger.debug('存在图片{},报错'.format(self.pic_name))
             return True
         return False
 

@@ -15,8 +15,12 @@ class AIModelBase:
         self.rpc_support = rpc_support
         self.model_mgr: ModelMgrV2 = None
         self.start_init = False
+        self.prev_predict_ts = time.time()
         if preload:
             async_thread(self._async_init)
+        async_thread(self._async_close_model)
+
+
 
     def _async_init(self):
         if self.start_init:
@@ -27,6 +31,20 @@ class AIModelBase:
         self.inited = True
         logger.debug("init model: {}".format(self.name))
 
+    def _async_close_model(self):
+        while True:
+            time.sleep(3)
+            if time.time() - self.prev_predict_ts < 60*5:
+                continue
+            if not self.inited:
+                continue
+            self.prev_predict_ts = time.time()
+            logger.debug('关闭模型: {}'.format(self.name))
+            self.start_init = False
+            self.inited = False
+            self.close_model()
+
+
     def start_init_model(self):
         self._async_init()
 
@@ -35,11 +53,15 @@ class AIModelBase:
             async_thread(self._async_init)
         while not self.inited:
             time.sleep(0.1)
+        self.prev_predict_ts = time.time()
+    def close_model(self):
+        pass
 
     def predict(self, *args, **kwargs):
         # 检查模型是否已初始化，如果未初始化则等待初始化完成
         logger.debug("predict: {}".format(self.name))
         self.wait_model_init()
+        self.prev_predict_ts = time.time()
         return self.predict(*args, **kwargs)
 
     def rpc_req_encode(self, *args, **kwargs):

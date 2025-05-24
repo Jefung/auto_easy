@@ -18,7 +18,7 @@ class YoloItem:
         self.params_list = [name, score, match_box, src_box]
         self.name = name
         self.score = score
-        self.box = match_box
+        self.box: Box = match_box
         self.src_box = src_box
         self.mock = False
         self.mock_mid_point = Point(0, 0)

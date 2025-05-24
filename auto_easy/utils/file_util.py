@@ -74,7 +74,6 @@ def download_file(url, save_path) -> str:
 
 def must_get_file(filename, download_url=None):
     dirs = [
-        get_statics_dir(),
         get_app_dir(),
     ]
     for d in dirs:

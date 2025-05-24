@@ -3,6 +3,7 @@ import time
 import cv2
 import numpy as np
 
+from auto_easy import logger
 from auto_easy.base.ai.model_mgr_v2 import AIModelBase
 from auto_easy.base.image.cvt import img_2_ndarray_rgb, img_2_list, list_2_ndarray
 from auto_easy.utils import must_get_file
@@ -20,7 +21,9 @@ class SuperRes(AIModelBase):
         self.scale_conf = {
             3: must_get_file('EDSR_x3.pb',download_url='https://github.com/Jefung/auto_easy/raw/refs/heads/main/statics/EDSR_x3.pb'),
         }
+
         for scale_factor, model_path in self.scale_conf.items():
+            logger.debug(f"{scale_factor}: {model_path}")
             sr = cv2.dnn_superres.DnnSuperResImpl_create()
             # 读取预训练的模型
             sr.readModel(model_path)

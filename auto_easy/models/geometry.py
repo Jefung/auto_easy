@@ -89,6 +89,13 @@ class Point:
         if max_x > 0:
             self.x = min(self.x, max_x)
 
+    def move_y(self, dis, min_y=0, max_y=-1):
+        self.y += dis
+        if min_y >= 0:
+            self.y = max(self.y, min_y)
+        if max_y > 0:
+            self.y = min(self.y, max_y)
+
     def tuple(self):
         return (self.x, self.y)
 
