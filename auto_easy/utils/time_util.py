@@ -26,6 +26,10 @@ class Timeout:
     def is_timeout(self):
         return not self.not_timeout()
 
+    def wait_timeout(self):
+        while self.not_timeout():
+            time.sleep(0.05)
+
 
 def calculate_average_milliseconds(time_array):
     """

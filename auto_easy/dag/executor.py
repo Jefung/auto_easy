@@ -86,7 +86,9 @@ class ExecutorDebug(Executor):
 
 
 class ExecutorPicClick(Executor):
-    def __init__(self, pic_name, det_to=2, bf_sleep=0.2, af_sleep=0.2, x_offset=0, y_offset=0, hit_err_print=True, click_area_rate=(0,0,1,1)):
+    def __init__(self, pic_name: object, det_to: object = 2, bf_sleep: object = 0.2, af_sleep: object = 0.2, x_offset: object = 0, y_offset: object = 0,
+                 hit_err_print: object = True,
+                 click_area_rate: object = (0, 0, 1, 1), click_hit_det=False, click_times=1) -> None:
         self.pic_name = pic_name
         self.det_to = det_to
         self.bf_sleep = bf_sleep
@@ -95,6 +97,9 @@ class ExecutorPicClick(Executor):
         self.y_offset = y_offset  # 点击偏移量
         self.hit_err_print = hit_err_print
         self.click_area_rate = click_area_rate
+        self.click_hit_det = click_hit_det
+        self.click_times = click_times
+        self.mdet = None
         super().__init__(name='图片点击({})'.format(pic_name))
 
     def _hit_optional(self, ctx: Ctx) -> bool:
@@ -104,23 +109,31 @@ class ExecutorPicClick(Executor):
             if self.hit_err_print:
                 pass
             return False
+        self.mdet = mdet
         return True
 
     def _exec_optional(self, ctx: Ctx) -> bool:
-        mdet = get_auto_core().loop_find_pics(self.pic_name, to=self.det_to)
-        if not mdet.all_detected:
-            logger.error("[图片点击] 识别失败，无法识别. {}".format(self.pic_name))
-            return False
-        logger.debug("[图片点击] 点击图片({}), 区域: {}".format(self.pic_name, mdet.box))
+        if self.click_hit_det:
+            mdet = self.mdet
+        else:
+            mdet = get_auto_core().loop_find_pics(self.pic_name, to=self.det_to)
+            logger.info(f'mdet: {mdet},  mdet.all_detected: {mdet.all_detected}, pic_det_list:{mdet.pic_det_list}')
+            if not mdet.all_detected:
+                logger.error("[图片点击] 识别失败，无法识别. {}".format(self.pic_name))
+                return False
 
+        # logger.info(f'self.click_hit_det: {self.click_hit_det}')
         box = mdet.box
         box = box.crop_by_rate(self.click_area_rate[0], self.click_area_rate[1], self.click_area_rate[2], self.click_area_rate[3])
         box.move(self.x_offset, self.y_offset)
-        get_auto_core().left_click_in_box(
-            box,
-            bf_sleep=self.bf_sleep * uniform(0.8, 1.2),
-            af_sleep=self.af_sleep * uniform(0.8, 1.2),
-        )
+        logger.debug("[图片点击] 点击图片({}), 图片区域: {}，最终点击区域: {}".format(self.pic_name, mdet.box,box))
+        time.sleep(self.bf_sleep * uniform(0.8, 1.2))
+        for i in range(self.click_times):
+            get_auto_core().left_click_in_box(
+                box,
+                af_sleep=uniform(0.2,0.5),
+            )
+        time.sleep(self.af_sleep * uniform(0.8, 1.2))
         return True
 
 class ExecutorPicClickAndWaitDisappear(Executor):
@@ -193,11 +206,12 @@ class ExecutorTryPicClick(Executor):
         return True
 
 class ExecutorTryPicMultiClick(Executor):
-    def __init__(self, pic_name, det_to=0.5, bf_sleep=0.2, af_sleep=0.3):
+    def __init__(self, pic_name, det_to=0.5, bf_sleep=0.2, af_sleep=0.3, click_sleep=0.5):
         self.pic_name = pic_name
         self.det_to = det_to
         self.bf_sleep = bf_sleep
         self.af_sleep = af_sleep
+        self.click_sleep = click_sleep
         super().__init__(name='多图片点击({})'.format(pic_name))
 
     def _hit_optional(self, ctx: Ctx) -> bool:
@@ -213,10 +227,10 @@ class ExecutorTryPicMultiClick(Executor):
             return True
 
         for box in mdet.boxes:
-            logger.info("[点击] 点击图片({}), 区域: {}".format(self.pic_name, mdet.box))
+            logger.info("[点击] 点击图片({}), 区域: {}".format(self.pic_name, box))
             get_auto_core().left_click_in_box(
                 box,
-                af_sleep=0.5 * uniform(0.8, 1.2)
+                af_sleep=self.click_sleep * uniform(0.8, 1.2)
             )
         return True
 

@@ -34,7 +34,7 @@ class AIModelBase:
     def _async_close_model(self):
         while True:
             time.sleep(3)
-            if time.time() - self.prev_predict_ts < 60*5:
+            if time.time() - self.prev_predict_ts < 60*20:
                 continue
             if not self.inited:
                 continue

@@ -1,4 +1,7 @@
 import json
+import os
+import subprocess
+import tempfile
 import time
 import warnings
 from typing import List
@@ -38,6 +41,18 @@ class YoloObj:
     def __str__(self):
         return f'{self.id}({self.name}):<{self.x1}, {self.y1}, {self.x2}, {self.y2}> {self.score}'
 
+def print_memory_usage():
+    total_memory = torch.cuda.get_device_properties(0).total_memory
+    allocated_memory = torch.cuda.memory_allocated(0)
+    reserved_memory = torch.cuda.memory_reserved(0)
+    free_memory = total_memory - reserved_memory
+
+    # print(f"总显存: {total_memory / 1024 ** 2:.2f} MB")
+    # print(f"已使用显存: {allocated_memory / 1024 ** 2:.2f} MB")
+    # print(f"保留显存: {reserved_memory / 1024 ** 2:.2f} MB")
+    # print(f"空闲显存: {free_memory / 1024 ** 2:.2f} MB")
+    logger.debug(f"显存使用比例: {allocated_memory / total_memory * 100:.2f}%")
+
 
 class YoloObjs:
     def __init__(self, conf: ModelConf, dets: List[YoloObj]):
@@ -76,6 +91,18 @@ class AIYolo(AIModelBase):
         super().__init__(*args, **kwargs)
 
 
+# todo: 这里下载会失败
+def clone_yolov5_repo(repo_url, clone_dir=None):
+    """
+    克隆指定的 GitHub 仓库到本地目录
+    """
+    if clone_dir is None:
+        clone_dir = os.path.join(tempfile.gettempdir(), 'model_yolov5')
+    if not os.path.exists(clone_dir):
+        logger.debug('下载repo：'.format(repo_url))
+        subprocess.run(['git', 'clone', repo_url, clone_dir], check=True)
+    return clone_dir
+
 class AIYoloV5(AIYolo):
     def __init__(self, conf: ModelConf):
         self.conf = conf
@@ -86,13 +113,30 @@ class AIYoloV5(AIYolo):
         conf = self.conf
         # # 禁用所有级别的日志记录
         # logger.disabled = True
+        # 之前可能close了模型，这里等待资源释放
+        time.sleep(3)
         import os
         os.environ['GITHUB_HOST'] = 'https://hub.fastgit.org'  # 使用 FastGit 镜像
         # os.environ['TORCH_HOME'] = '/path/to/your/cache'  # 指定模型缓存路径（可选）
-        model = torch.hub.load('ultralytics/yolov5', 'custom', verbose=True, path=conf.pt_path)
+# 'git', 'clone', 'https://github.com/ultralytics/yolov5.git', 'C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\yolov5'
+        # url = 'https://github.com/ultralytics/yolov5/releases/download/v6.0/yolov5m.pt'
+        # download_model_to_temp
+        repo_url = 'https://github.com/ultralytics/yolov5.git'
+        local_repo_path = clone_yolov5_repo(repo_url)
+        logger.debug(f'初始化Yolo模型: {self.model}, {conf.pt_path}, {local_repo_path}')
+        import os
 
+        # print("模型文件路径:", conf.pt_path)
+        # print("文件是否存在:", os.path.exists(conf.pt_path))
+        print("文件大小:", os.path.getsize(conf.pt_path) if os.path.exists(conf.pt_path) else "无文件")
+
+        model = torch.hub.load(local_repo_path, 'custom',source='local', verbose=True, path=conf.pt_path,force_reload=True)
+
+        # model = torch.hub.load('ultralytics/yolov5', 'custom', verbose=True, path=conf.pt_path, trust_repo=True)
         # 将模型设置为eval模式，关闭一些训练相关的模块（如Dropout等），提升性能
         model.eval()
+        # 将模型转换为半精度浮点数
+        model = model.half()
         # 设置模型相关参数（可选操作）
         model.det_conf = conf.prob  # 设置置信度阈值，只有置信度高于此值的检测结果才会被保留
         model.iou = conf.iou  # 设置非极大值抑制（NMS）的交并比（IoU）阈值
@@ -100,6 +144,8 @@ class AIYoloV5(AIYolo):
         model.multi_label = conf.multi_label  # 设置是否允许每个检测框有多个标签，False表示每个检测框只对应一个类别
         self.model = model
         logger.debug(f'Yolo模型({conf.name})完成加载')
+        print(f'Yolo模型({conf.name})完成加载')
+        print_memory_usage()
 
     def close_model(self):
         import gc
@@ -114,9 +160,9 @@ class AIYoloV5(AIYolo):
         import gc
         gc.collect()
         torch.cuda.empty_cache()
-        allocated_after = torch.cuda.memory_allocated()
-        reserved_after = torch.cuda.memory_reserved()
-        logger.debug(f'释放后显存使用情况: 分配的显存: {allocated_after}, 保留的显存: {reserved_after}')
+        torch.cuda.synchronize()  # 确保所有CUDA操作完成
+        print_memory_usage()
+        # logger.debug(f'释放后显存使用情况: 分配的显存: {allocated_after}, 保留的显存: {reserved_after}')
         logger.debug(f'模型({self.conf.name})已释放')
 
 
@@ -190,4 +236,6 @@ class AIYoloV5(AIYolo):
 
 
 if __name__ == '__main__':
+    m = AIYoloV5(ModelConf('aggd', r'E:\repo\dnf_tool\statics\yolov5s_lp.pt', pre_load=True)),
+    time.sleep(600)
     pass

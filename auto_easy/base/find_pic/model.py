@@ -471,6 +471,8 @@ class MPicDetV2:
 
     @property
     def all_detected(self):
+        if len(self.pic_det_list) == 0:
+            return False
         for det in self.pic_det_list:
             if not det.is_detected:
                 return False

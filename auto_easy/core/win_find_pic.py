@@ -78,10 +78,12 @@ class WinFindPic(Window, PicFactory):
     def find_pics(self, pics, pic_det_conf: PicDetConf = None) -> MPicDetV2:
         return self.raw_find_pics(pics, pic_det_conf)
 
-    def find_pics_simple(self, pics, box=None, sim=None, rgb=None, scale=None, multi_match=None):
+    def find_pics_simple(self, pics, box=None, sim=None, rgb=None, scale=None, multi_match=None,expand_scale=None):
         conf = PicDetConf()
         if box is not None:
             conf.box = box
+        if expand_scale is not None:
+            conf.expand_scale = expand_scale
         if sim is not None:
             conf.sim = sim
         if rgb is not None:

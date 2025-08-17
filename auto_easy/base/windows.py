@@ -151,7 +151,7 @@ class Window:
         # pass
         left, top, right, down = self.get_client_rect()
         if not (left <= x <= right and top <= y <= down):
-            raise Exception(f'xy(<{x},{y}>) is invalid')
+            logger.error(f'xy(<{x},{y}>) is invalid')
 
     def left_click(self, x, y, press_sec=0.05, af_sleep=0, bf_sleep=0):
         x = int(x)
@@ -398,4 +398,5 @@ class Window:
 
 
 if __name__ == '__main__':
+    print(Window(window_id='a1-').get_text())
     pass

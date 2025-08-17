@@ -323,6 +323,8 @@ class Box:
                 return False
         return False
 
+    # def to_json_conf
+
 
 def sort_boxes_by_group(boxes: list[Box], dis_err=20):
     # 从左到右, 从上往下排序

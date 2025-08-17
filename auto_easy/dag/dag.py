@@ -63,7 +63,7 @@ class DAG(Executor):
                     idx = idx - 1
                     retry += 1
                     continue
-            get_auto_core().save('DAG执行失败_{}'.format(self.name))
+            # get_auto_core().save('DAG执行失败_{}'.format(self.name))
             logger.error(f'DAG({self.name}) 执行失败, layer: {layer.name}')
             return False
 
